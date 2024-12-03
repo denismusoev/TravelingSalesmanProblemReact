@@ -11,61 +11,65 @@ import { LineString, Point } from 'ol/geom';
 import { Feature } from 'ol';
 import { Stroke, Style, Fill, Circle as CircleStyle } from 'ol/style';
 
-const MapComponent = ({ cities, route }) => {
+const MapComponent = ({ cities, route, clusters }) => {
     const mapRef = useRef();
 
     useEffect(() => {
-        if (!route || route.length === 0 || !route[0] || !route[0][0] || !route[route.length - 1][1]) {
-            console.warn('Маршрут пуст или данные отсутствуют.');
+        if (!clusters || clusters.length === 0) {
+            console.warn('Кластеры отсутствуют.');
             return;
         }
 
-        const startFeature = new Feature({
-            geometry: new Point(fromLonLat([route[0][0].longitude, route[0][0].latitude])),
+        const features = [];
+        const clusterColors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#FFA533']; // Цвета для кластеров
+
+        // Создание точек для кластеров
+        clusters.forEach((cluster, clusterIndex) => {
+            cluster.forEach((city) => {
+                const pointFeature = new Feature({
+                    geometry: new Point(fromLonLat([city.longitude, city.latitude])),
+                });
+
+                pointFeature.setStyle(
+                    new Style({
+                        image: new CircleStyle({
+                            radius: 6,
+                            fill: new Fill({
+                                color: clusterColors[clusterIndex % clusterColors.length],
+                            }),
+                            stroke: new Stroke({ color: 'black', width: 1 }),
+                        }),
+                    })
+                );
+
+                features.push(pointFeature);
+            });
         });
 
-        const endFeature = new Feature({
-            geometry: new Point(fromLonLat([route[route.length - 1][1].longitude, route[route.length - 1][1].latitude])),
-        });
+        // Создание линий маршрута
+        if (route && route.length > 0) {
+            route.forEach(([start, end]) => {
+                const lineFeature = new Feature({
+                    geometry: new LineString([
+                        fromLonLat([start.longitude, start.latitude]),
+                        fromLonLat([end.longitude, end.latitude]),
+                    ]),
+                });
 
-        startFeature.setStyle(
-            new Style({
-                image: new CircleStyle({
-                    radius: 8,
-                    fill: new Fill({ color: 'green' }),
-                    stroke: new Stroke({ color: 'black', width: 2 }),
-                }),
-            })
-        );
+                lineFeature.setStyle(
+                    new Style({
+                        stroke: new Stroke({
+                            color: 'blue',
+                            width: 2,
+                        }),
+                    })
+                );
 
-        endFeature.setStyle(
-            new Style({
-                image: new CircleStyle({
-                    radius: 8,
-                    fill: new Fill({ color: 'red' }),
-                    stroke: new Stroke({ color: 'black', width: 2 }),
-                }),
-            })
-        );
+                features.push(lineFeature);
+            });
+        }
 
-        const routeCoords = route.flatMap(segment => [
-            fromLonLat([segment[0].longitude, segment[0].latitude]),
-            fromLonLat([segment[1].longitude, segment[1].latitude]),
-        ]);
-
-        const routeFeature = new Feature({
-            geometry: new LineString(routeCoords),
-        });
-
-        routeFeature.setStyle(
-            new Style({
-                stroke: new Stroke({
-                    color: 'blue',
-                    width: 3,
-                }),
-            })
-        );
-
+        // Инициализация карты
         const map = new Map({
             target: mapRef.current,
             layers: [
@@ -74,7 +78,7 @@ const MapComponent = ({ cities, route }) => {
                 }),
                 new VectorLayer({
                     source: new VectorSource({
-                        features: [routeFeature, startFeature, endFeature],
+                        features,
                     }),
                 }),
             ],
@@ -85,21 +89,21 @@ const MapComponent = ({ cities, route }) => {
         });
 
         return () => map.setTarget(null);
-    }, [cities, route]);
+    }, [cities, route, clusters]);
 
     return (
         <div>
             <h5>Схема маршрута:</h5>
             <p>
                 {route.length > 0 ? (
-                    <>
-                        {route.map((segment, index) => (
-                            <span key={index}>
-                            {segment[0].name}
-                                {index < route.length - 1 && ' → '}
-                        </span>
-                        ))}
-                    </>
+                    <span>
+            {route.map(([start], index) => (
+                <span key={index}>
+                {start.name}
+                    {index < route.length - 1 && ' → '}
+              </span>
+            ))}
+          </span>
                 ) : (
                     <span>Маршрут отсутствует.</span>
                 )}
@@ -107,8 +111,8 @@ const MapComponent = ({ cities, route }) => {
             <div ref={mapRef} style={{ width: '100%', height: '500px' }} />
         </div>
     );
-
-
 };
 
 export default MapComponent;
+
+

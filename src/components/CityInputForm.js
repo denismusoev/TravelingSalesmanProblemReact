@@ -13,7 +13,7 @@ const CityInputForm = ({ onSubmit }) => {
     const [cityName, setCityName] = useState('');
     const [latitude, setLatitude] = useState('');
     const [longitude, setLongitude] = useState('');
-    const [clusters, setClusters] = useState(1);
+    const [clusters, setClusters] = useState(2);
     const [savedSets, setSavedSets] = useState([]);
 
     useEffect(() => {
@@ -39,6 +39,9 @@ const CityInputForm = ({ onSubmit }) => {
     };
 
     const handleSubmit = () => {
+        if (cities.length === 0) {
+            return;
+        }
         onSubmit(cities, clusters);
     };
 
@@ -95,22 +98,30 @@ const CityInputForm = ({ onSubmit }) => {
                     <Col md={6}>
                         <Form.Control
                             type="number"
-                            min="1"
+                            min="2"
                             value={clusters}
-                            onChange={(e) => setClusters(e.target.value)}
+                            onChange={(e) => {
+                                const value = parseInt(e.target.value, 10);
+                                if (value >= 2) {
+                                    setClusters(value);
+                                } else {
+                                    setClusters(2); // Устанавливаем минимальное значение
+                                }
+                            }}
                             placeholder="Количество кластеров"
                         />
+
                     </Col>
                     <Col>
                         <Button variant="success" onClick={handleSubmit}>Построить маршрут</Button>
                     </Col>
                 </Row>
 
-                <Row className="mb-3">
-                    <Col>
+                <Row className="">
+                    <div style={{ width: 'fit-content' }}>
                         <Button variant="warning" onClick={saveCurrentSet}>Сохранить набор</Button>
-                    </Col>
-                    <Col>
+                    </div>
+                    <div style={{ width: 'fit-content' }}>
                         <Dropdown>
                             <Dropdown.Toggle variant="info" id="dropdown-basic">
                                 Выбрать набор
@@ -123,10 +134,10 @@ const CityInputForm = ({ onSubmit }) => {
                                 ))}
                             </Dropdown.Menu>
                         </Dropdown>
-                    </Col>
-                    <Col>
+                    </div>
+                    <div style={{ width: 'fit-content' }}>
                         <Button variant="danger" onClick={clearCities}>Очистить список</Button>
-                    </Col>
+                    </div>
                 </Row>
             </Form>
 
